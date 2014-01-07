@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# DNS Update Script
+
+# Configuration
+host="home"
+zone="example.com"
+server="127.0.0.1"
+site="http://myip.dnsomatic.com"
+keyfile="/etc/update-dns/key.conf"
+
+PROG=update-dns
+VERS=0.1
+
+IP="$(curl -s $site)"
+OLDIP="$(host $host.$zone | cut -d ' ' -f 4)"
+
+if [ $OLDIP == $IP ]; then
+	logger -s -p "user.info" -t $PROG "No change in IP Address $IP nothing to update"
+	exit;
+fi
+
+TMP="$(mktemp)"
+
+printf "server $server\nzone $zone\nupdate delete $host.$zone A\nupdate add $host.$zone 3600 A $IP\nsend" > $TMP
+
+nsupdate -k $keyfile $TMP
+RETVAL=$?
+
+if [ $RETVAL -eq 0 ]; then
+	logger -s -p "user.info" -t $PROG "Successful update of IP Address $IP"
+else
+	logger -s -p "user.err" -t $PROG "Updating DNS failed"
+	exit 1;
+fi
+
+rm $TMP
