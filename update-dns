@@ -10,10 +10,23 @@ site="http://myip.dnsomatic.com"
 keyfile="/etc/update-dns/key.conf"
 
 PROG=update-dns
-VERS=0.1
+VERS=0.2
 
-IP="$(curl -s $site)"
-OLDIP="$(host $host.$zone | cut -d ' ' -f 4)"
+IP="$(curl -fs $site)"
+RETVAL=$?
+
+if [ $RETVAL -ne 0 ]; then
+	logger -s -p "user.err" -t $PROG "Failed to get external IP from $site"
+	exit 1;
+fi
+
+OLDIP="$(host -t A $host.$zone | cut -d ' ' -f 4)"
+RETVAL=$?
+
+if [ $RETVAL -ne 0 ]; then
+	logger -s -p "user.err" -t $PROG "Failed to get old IP address"
+	exit 1;
+fi
 
 if [ $OLDIP == $IP ]; then
 	logger -s -p "user.info" -t $PROG "No change in IP Address $IP nothing to update"
