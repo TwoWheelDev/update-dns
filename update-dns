@@ -26,7 +26,7 @@ site="http://myip.dnsomatic.com"
 keyfile="/etc/update-dns/key.conf"
 
 PROG=update-dns
-VERS=0.2
+VERS=0.3
 
 IP="$(curl -fs $site)"
 RETVAL=$?
@@ -53,7 +53,15 @@ TMP="$(mktemp)"
 
 printf "server $server\nzone $zone\nupdate delete $host.$zone A\nupdate add $host.$zone 3600 A $IP\nsend" > $TMP
 
-nsupdate -k $keyfile $TMP
+NSUPDPRG=$(type -p nsupdate)
+RETVAL=$?
+
+if [ $RETVAL -ne 0 ]; then
+    logger -s -p "user.err" -t $PROG "Unable to find nsupdate on your path"
+    exit 1;
+fi
+
+$NSUPDPRG -k $keyfile $TMP
 RETVAL=$?
 
 if [ $RETVAL -eq 0 ]; then
